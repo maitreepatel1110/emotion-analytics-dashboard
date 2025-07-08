@@ -61,10 +61,10 @@ CSV Log:
 Timestamp,Emotion
 2025-06-11 15:22:13,Happy
 2025-06-11 15:22:14,Neutral
-
+```
 Dashboard:
 ![Dashboard](assets/dash.jpg)
-
+```
 
 📈 Emotion trends over time
 📊 Bar chart of total emotion counts
