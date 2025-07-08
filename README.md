@@ -63,7 +63,7 @@ Timestamp,Emotion
 2025-06-11 15:22:14,Neutral
 
 Dashboard:
-![Dashboard Screenshot](assets/dash.jpg)
+![Dashboard](assets/dash.jpg)
 
 
 📈 Emotion trends over time
