@@ -63,6 +63,9 @@ Timestamp,Emotion
 2025-06-11 15:22:14,Neutral
 
 Dashboard:
+![Dashboard Screenshot](/Users/maitreepatel/Desktop/smart-video-companion/dash.jpg)
+
+
 📈 Emotion trends over time
 📊 Bar chart of total emotion counts
 🥧 Pie chart of emotion share
