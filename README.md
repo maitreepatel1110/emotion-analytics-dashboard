@@ -63,7 +63,7 @@ Timestamp,Emotion
 2025-06-11 15:22:14,Neutral
 
 Dashboard:
-![Dashboard Screenshot](/Users/maitreepatel/Desktop/smart-video-companion/dash.jpg)
+![Dashboard Screenshot](assets/dash.jpg)
 
 
 📈 Emotion trends over time
