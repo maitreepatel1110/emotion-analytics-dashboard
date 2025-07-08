@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Video Companion Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8f9fb;
+            color: #222;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 36px;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        h2 {
+            margin-top: 48px;
+            margin-bottom: 16px;
+            color: #3a3a3a;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 40px;
+            padding: 0 24px;
+        }
+        .chart-card {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(30, 34, 90, 0.09);
+            padding: 32px 20px 24px 20px;
+            flex: 1 1 340px;
+            min-width: 340px;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+       .emotion-logs-heading {
+    padding-left: 35px; /* Adjust as needed */
+}
+
+
+        canvas {
+            max-width: 100%;
+            height: 320px !important;
+            margin-bottom: 18px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 96%;
+            margin: 24px auto 0 auto;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        th, td {
+            border: 1px solid #e2e2e2;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f6fa;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafc;
+        }
+        #loading {
+            text-align: center;
+            font-size: 1.2em;
+            color: #888;
+            margin-top: 40px;
+        }
+        @media (max-width: 1100px) {
+            .charts-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 24px;
+            }
+            .chart-card {
+                max-width: 96vw;
+                min-width: 0;
+                width: 100%;
+            }
+        }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.7rem;
+            }
+            .chart-card {
+                padding: 20px 6px 12px 6px;
+            }
+            table {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Emotion Analytics Dashboard</h1>
+
+    <div class="charts-container">
+        <div class="chart-card">
+            <canvas id="emotionTrendChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <canvas id="peakEmotionChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <canvas id="emotionDistributionChart"></canvas>
+        </div>
+    </div>
+
+    <h2 class="emotion-logs-heading">Emotion Logs</h2>
+    <div id="loading">Loading data...</div>
+    <table id="emotionTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Emotion</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // Consistent pastel color palette
+        const chartColors = [
+            '#6a89cc', '#38ada9', '#b8e994', '#f6b93b', '#e55039',
+            '#4a69bd', '#60a3bc', '#78e08f', '#fa983a', '#eb2f06'
+        ];
+
+        // Helper: convert string to Title Case
+        function toTitleCase(str) {
+            return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+        }
+
+        fetch('/data')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('emotionTable').style.display = '';
+
+                // Standardize emotion labels to Title Case
+                const dataTitleCased = data.map(row => ({
+                    ...row,
+                    Emotion: toTitleCase(row.Emotion)
+                }));
+
+                const timestamps = dataTitleCased.map(row => row.Timestamp);
+                const emotions = dataTitleCased.map(row => row.Emotion);
+
+                // Consistent list of emotions in Title Case, in order of first appearance
+                const emotionsList = [...new Set(emotions)];
+
+                // Prepare data for emotion trend chart
+                const emotionCountsByTime = {};
+                dataTitleCased.forEach(row => {
+                    const time = row.Timestamp.slice(0, 16); // minute resolution
+                    if (!emotionCountsByTime[time]) emotionCountsByTime[time] = {};
+                    emotionCountsByTime[time][row.Emotion] = (emotionCountsByTime[time][row.Emotion] || 0) + 1;
+                });
+
+                const timeLabels = Object.keys(emotionCountsByTime);
+                const datasets = emotionsList.map((emotion, i) => ({
+                    label: emotion,
+                    data: timeLabels.map(time => emotionCountsByTime[time][emotion] || 0),
+                    fill: false,
+                    borderColor: chartColors[i % chartColors.length],
+                    backgroundColor: chartColors[i % chartColors.length],
+                    tension: 0.35,
+                    pointRadius: 3
+                }));
+
+                new Chart(document.getElementById('emotionTrendChart'), {
+                    type: 'line',
+                    data: {
+                        labels: timeLabels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Emotion Trends Over Time',
+                                font: { size: 18 }
+                            },
+                            legend: { display: true, position: 'bottom' }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: 'Time' } },
+                            y: { title: { display: true, text: 'Count' }, beginAtZero: true }
+                        }
+                    }
+                });
+
+                // Prepare data for peak emotion chart and pie chart
+                const emotionFrequency = {};
+                emotions.forEach(e => {
+                    emotionFrequency[e] = (emotionFrequency[e] || 0) + 1;
+                });
+                const peakEmotion = emotionsList.sort(
+                    (a, b) => emotionFrequency[b] - emotionFrequency[a]
+                )[0];
+
+                new Chart(document.getElementById('peakEmotionChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: emotionsList,
+                        datasets: [{
+                            label: 'Total Count',
+                            data: emotionsList.map(e => emotionFrequency[e]),
+                            backgroundColor: emotionsList.map((_, i) => chartColors[i % chartColors.length])
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Overall Emotion Distribution (Peak: ${peakEmotion})`,
+                                font: { size: 18 }
+                            },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: 'Emotion' } },
+                            y: { title: { display: true, text: 'Count' }, beginAtZero: true }
+                        }
+                    }
+                });
+
+                // Emotion distribution pie chart
+                new Chart(document.getElementById('emotionDistributionChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: emotionsList, // Use the same list for consistency
+                        datasets: [{
+                            label: 'Emotion Share',
+                            data: emotionsList.map(e => emotionFrequency[e]),
+                            backgroundColor: emotionsList.map((_, i) => chartColors[i % chartColors.length])
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Emotion Distribution Pie Chart',
+                                font: { size: 18 }
+                            },
+                            legend: { display: true, position: 'bottom' }
+                        }
+                    }
+                });
+
+                // Populate table
+                const tableBody = document.querySelector('#emotionTable tbody');
+                dataTitleCased.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${row.Timestamp}</td><td>${row.Emotion}</td>`;
+                    tableBody.appendChild(tr);
+                });
+            });
+    </script>
+</body>
+</html>
